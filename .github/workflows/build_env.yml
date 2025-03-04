@@ -1,0 +1,28 @@
+name: Create builder rootfs 
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build wine_builder_rootfs image and export 
+        uses: docker/build-push-action@v6
+        with:
+          file: ./Dockerfile.build_env
+          tags: wine_builder_rootfs:latest
+          outputs: type=docker,dest=${{ runner.temp }}/wine_builder_rootfs.tar
+
+      - name: Compress image with xz
+        run: |
+          xz -T 0 -9 ${{ runner.temp }}/wine_builder_rootfs.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Builder rootfs images
+          path: ${{ runner.temp }}/wine_builder_rootfs.tar.xz

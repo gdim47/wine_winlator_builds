@@ -1,0 +1,87 @@
+ARG UBUNTU_VERSION="noble"
+ARG LLVM_MINGW_LINK="https://github.com/bylaws/llvm-mingw"
+ARG LLVM_MINGW_VERSION="20250228"
+ARG LLVM_MINGW_ARCH="x86_64"
+
+FROM ubuntu:${UBUNTU_VERSION}
+
+ARG UBUNTU_VERSION
+ARG LLVM_MINGW_LINK
+ARG LLVM_MINGW_VERSION
+ARG LLVM_MINGW_ARCH
+
+# add ubuntu-ports repo for arm64 packages 
+RUN env DEBIAN_FRONTEND="noninteractive" apt-get update -yq && \
+    apt-get install --no-install-recommends ca-certificates -yq && \
+    printf "Types: deb\n\
+URIs: http://archive.ubuntu.com/ubuntu/\n\
+Suites: noble noble-updates noble-backports\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: amd64 i386\n\
+\n\
+Types: deb\n\
+URIs: http://security.ubuntu.com/ubuntu/\n\
+Suites: noble-security\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: amd64 i386\n\
+\n\
+Types: deb\n\
+URIs: https://ports.ubuntu.com/ubuntu-ports/\n\
+Suites: noble noble-updates noble-backports noble-security\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: arm64\n" \
+    > /etc/apt/sources.list.d/ubuntu.sources && \
+    dpkg --add-architecture arm64 && \
+    env DEBIAN_FRONTEND="noninteractive" apt-get update -yq
+
+# install build tools and compilers
+RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recommends \
+    locales python3 vim-tiny \
+    unzip bzip2 wget git zip zstd lz4 xz-utils glslang-dev \
+    autoconf autogen automake autopoint bison flex gettext m4 pkg-config \
+    build-essential cmake meson libtool ninja-build \
+    libgcc-13-dev && \
+    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
+    wget -O /llvm-mingw.tar.xz \
+    ${LLVM_MINGW_LINK}/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH}.tar.xz && \
+    tar xf /llvm-mingw.tar.xz --directory=/ && \
+    mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
+    rm /llvm-mingw.tar.xz
+
+# deps for x86_64 and arm64ec wine build
+RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recommends \
+    libmpeg2-4-dev libmpg123-dev libogg-dev libjpeg-dev libjpeg-turbo8-dev libpng-dev \
+    libsndfile1-dev \
+    libasound2-dev libpulse-dev \
+    libhogweed6 libgnutls30 libgnutls-openssl27 \
+    libbrotli-dev libzstd-dev zlib1g-dev \
+    libfontconfig1-dev libfreetype-dev \
+    libx11-dev libx11-xcb-dev libxau-dev libxcb-dri3-dev libxext-dev \
+    libxcb-present-dev libxcb-randr0-dev libxcb-render0-dev libxcb-shm0-dev \
+    libxcb-sync-dev libxcomposite-dev libxrandr-dev libxi-dev libxcursor-dev \
+    libxrender-dev libxext-dev libxdmcp-dev libxrandr-dev \
+    libdrm-dev libgl-dev libegl-dev libvulkan-dev \ 
+    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \ 
+    libmpeg2-4:arm64 libmpg123-0t64:arm64 libogg0:arm64 libjpeg8:arm64 libjpeg-turbo8:arm64 libpng16-16t64:arm64 \
+    libsndfile1:arm64 \
+    libasound2t64:arm64 libpulse0:arm64 \
+    libhogweed6:arm64 libgnutls30:arm64 libgnutls-openssl27:arm64 \
+    libbrotli1:arm64 libzstd1:arm64 zlib1g:arm64 \
+    libfontconfig1:arm64 libfreetype6:arm64 \
+    libx11-6:arm64 libx11-xcb1:arm64 libxau6:arm64 libxcb-dri3-0:arm64 libxext6:arm64 \
+    libxcb-present0:arm64 libxcb-randr0:arm64 libxcb-render0:arm64 libxcb-shm0:arm64 \
+    libxcb-sync1:arm64 libxcomposite1:arm64 libxrandr2:arm64 libxi6:arm64 libxcursor1:arm64 \
+    libxrender1:arm64 libxext6:arm64 libxdmcp6:arm64 \
+    libdrm2:arm64 libgl1:arm64 libvulkan1:arm64 \ 
+    libgstreamer1.0-0:arm64 libgstreamer-plugins-base1.0-0:arm64 && \
+    apt-get clean -yq && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/llvm-mingw/bin:$PATH"
+ENV LANG=en_US.UTF-8
+ENV CC="clang"
+ENV CXX="clang++"
+
+WORKDIR /workdir
