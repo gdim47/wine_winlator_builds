@@ -34,7 +34,19 @@ Components: main universe restricted multiverse\n\
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
 Architectures: arm64\n" \
     > /etc/apt/sources.list.d/ubuntu.sources && \
-    dpkg --add-architecture arm64 && \
+    dpkg --add-architecture arm64 && dpkg --add-architecture amd64
+    
+# generate pinning for python3.12(for 24.04 release) package based on image platform. 
+# This is required to successfully install libgstreamer-plugins-base1.0-dev package
+RUN printf "\
+Package: python3.12:amd64\n\
+Pin: release *\n\
+Pin-Priority: 1001\n\
+\n\
+Package: python3.12:arm64\n\
+Pin: release *\n\
+Pin-Priority: -1\n" \
+    > /etc/apt/preferences.d/pin-python3 && \
     env DEBIAN_FRONTEND="noninteractive" apt-get update -yq
 
 # install build tools and compilers
@@ -51,33 +63,39 @@ RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recomm
     mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
     rm /llvm-mingw.tar.xz
 
+
 # deps for x86_64 and arm64ec wine build
-RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recommends \
-    libmpeg2-4-dev libmpg123-dev libogg-dev libjpeg-dev libjpeg-turbo8-dev libpng-dev \
-    libsndfile1-dev \
-    libasound2-dev libpulse-dev \
-    libhogweed6 libgnutls30 libgnutls-openssl27 \
-    libbrotli-dev libzstd-dev zlib1g-dev \
-    libfontconfig1-dev libfreetype-dev \
-    libx11-dev libx11-xcb-dev libxau-dev libxcb-dri3-dev libxext-dev \
-    libxcb-present-dev libxcb-randr0-dev libxcb-render0-dev libxcb-shm0-dev \
-    libxcb-sync-dev libxcomposite-dev libxrandr-dev libxi-dev libxcursor-dev \
-    libxrender-dev libxext-dev libxdmcp-dev libxrandr-dev \
-    libdrm-dev libgl-dev libegl-dev libvulkan-dev \ 
-    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \ 
-    libmpeg2-4:arm64 libmpg123-0t64:arm64 libogg0:arm64 libjpeg8:arm64 libjpeg-turbo8:arm64 libpng16-16t64:arm64 \
-    libsndfile1:arm64 \
-    libasound2t64:arm64 libpulse0:arm64 \
-    libhogweed6:arm64 libgnutls30:arm64 libgnutls-openssl27:arm64 \
-    libbrotli1:arm64 libzstd1:arm64 zlib1g:arm64 \
-    libfontconfig1:arm64 libfreetype6:arm64 \
-    libx11-6:arm64 libx11-xcb1:arm64 libxau6:arm64 libxcb-dri3-0:arm64 libxext6:arm64 \
-    libxcb-present0:arm64 libxcb-randr0:arm64 libxcb-render0:arm64 libxcb-shm0:arm64 \
-    libxcb-sync1:arm64 libxcomposite1:arm64 libxrandr2:arm64 libxi6:arm64 libxcursor1:arm64 \
-    libxrender1:arm64 libxext6:arm64 libxdmcp6:arm64 \
-    libdrm2:arm64 libgl1:arm64 libvulkan1:arm64 \ 
-    libgstreamer1.0-0:arm64 libgstreamer-plugins-base1.0-0:arm64 && \
-    apt-get clean -yq && rm -rf /var/lib/apt/lists/*
+RUN for arch in arm64 amd64; do \
+    env DEBIAN_FRONTEND="noninteractive" apt-get -o Dpkg::Options::="--force-overwrite" install -yq --no-install-recommends \
+    libgcc-13-dev:$arch \
+    libmpeg2-4-dev:$arch libmpg123-dev:$arch libogg-dev:$arch \
+    libjpeg-dev:$arch libjpeg-turbo8-dev:$arch libpng-dev:$arch \
+    libsndfile1-dev:$arch \
+    libasound2-dev:$arch libpulse-dev:$arch \
+    libgnutls30:$arch libgnutls-openssl27:$arch \
+    libbrotli-dev:$arch libzstd-dev:$arch zlib1g-dev:$arch \
+    libfontconfig1-dev:$arch libfreetype-dev:$arch \
+    libx11-dev:$arch libx11-xcb-dev:$arch libxau-dev:$arch \
+    libxcb-dri3-dev:$arch libxext-dev:$arch \
+    libxcb-present-dev:$arch libxcb-randr0-dev:$arch \
+    libxcb-render0-dev:$arch libxcb-shm0-dev:$arch \
+    libxcb-sync-dev:$arch libxcomposite-dev:$arch libxrandr-dev:$arch \
+    libxi-dev:$arch libxcursor-dev:$arch \
+    libxrender-dev:$arch libxext-dev:$arch libxdmcp-dev:$arch \
+    libxrandr-dev:$arch libdrm-dev:$arch libgl-dev:$arch \
+    libegl-dev:$arch libvulkan-dev:$arch \ 
+    libgstreamer1.0-dev:$arch libgstreamer-plugins-base1.0-dev:$arch; done 
+# because libgstreamer-plugins-base1.0-dev have arch-independent files,
+# unpack package in per-arch directories
+RUN for arch in arm64 amd64; do \
+        mkdir -p ./tmp-gstreamer-$arch /usr/local/gstreamer-1.0-$arch/include && \
+        env DEBIAN_FRONTEND="noninteractive" apt-get download -yq libgstreamer-plugins-base1.0-dev:$arch && \
+        dpkg-deb -x libgstreamer-plugins-base1.0-dev*$arch.deb ./tmp-gstreamer-$arch && \
+        cp -r ./tmp-gstreamer-$arch/usr/lib /usr/ && \
+        cp -r ./tmp-gstreamer-$arch/usr/include /usr/local/gstreamer-1.0-$arch && \
+        cp -r ./tmp-gstreamer-$arch/usr/share /usr/local/gstreamer-1.0-$arch && \
+        rm -r libgstreamer-plugins-base1.0-dev*$arch.deb ./tmp-gstreamer-$arch; \ 
+    done && apt-get clean -yq && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/llvm-mingw/bin:$PATH"
 ENV LANG=en_US.UTF-8
