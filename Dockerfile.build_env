@@ -97,9 +97,12 @@ RUN for arch in arm64 amd64; do \
         rm -r libgstreamer-plugins-base1.0-dev*$arch.deb ./tmp-gstreamer-$arch; \ 
     done && apt-get clean -yq && rm -rf /var/lib/apt/lists/*
 
+COPY create_wine_archive.sh /
+
 ENV PATH="/llvm-mingw/bin:$PATH"
 ENV LANG=en_US.UTF-8
 ENV CC="clang"
 ENV CXX="clang++"
 
 WORKDIR /workdir
+ENTRYPOINT "/create_wine_archive.sh"
