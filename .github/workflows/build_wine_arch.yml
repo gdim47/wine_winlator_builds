@@ -90,14 +90,16 @@ jobs:
       - name: Checkout wine repo
         uses: actions/checkout@v4
         with:
-          repository: "${{ env.WINE_REPO }}"
+          repository: ${{ env.WINE_REPO }}
           ref: ${{ env.WINE_TAG }}
-          path: "wine"
+          path: wine
       - name: Download builder rootfs artifact
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v9
         with: 
+          workflow: build_env.yml
+          workflow_conclusion: success
+          path: ${{ runner.temp }}
           name: Builder rootfs images
-          path: ${{ runner.tmp }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Load builder image
