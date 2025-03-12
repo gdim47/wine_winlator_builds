@@ -105,4 +105,4 @@ ENV CC="clang"
 ENV CXX="clang++"
 
 WORKDIR /workdir
-ENTRYPOINT "/create_wine_archive.sh"
+ENTRYPOINT [ "/create_wine_archive.sh" ]
