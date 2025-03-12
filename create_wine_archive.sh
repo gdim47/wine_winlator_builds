@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -xe
-
 export WINE_TAG="${WINE_TAG:-wine}"
 export WINE_BRANCH="${WINE_BRANCH:-stable}"
 export WINE_PATCHES="${WINE_PATCHES}"
@@ -24,11 +22,32 @@ export CONFIG_OPTIONS="
     --disable-win16 --disable-tests --enable-build-id \
 "
 
+echo "Preparing wine git repo"
+cd "${WINE_SRC_DIR}"
+./tools/make_requests
+./tools/make_specfiles
+./dlls/winevulkan/make_vulkan
+# ./tools/make_makefiles
+autoreconf -f
+
+echo "Build environment vars"
+env
+
+echo "Configuring wine tools build"
+mkdir -p "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
+cd "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
+${WINE_SRC_DIR}/configure --enable-win64
+echo "Building wine tools"
+make -j$(nproc) __tooldeps__
+
+# copy locale.nls
+make -j$(nproc) -C nls all
+
 case "${WINE_ARCH}" in
     "x86")
         export CONFIG_TARGET_OPTIONS="
             --host x86_64-linux-gnu --enable-archs=i386,x86_64 \
-            --with-mingw=x86_64-w64-linux-gnu-clang \
+            --with-mingw=x86_64-w64-mingw32-clang \
         " 
         export CFLAGS="${CFLAGS} -target x86_64-linux-gnu -I/usr/local/gstreamer-1.0-amd64/include"
         export CXXFLAGS="${CXXFLAGS} -target x86_64-linux-gnu -I/usr/local/gstreamer-1.0-amd64/include"
@@ -38,7 +57,7 @@ case "${WINE_ARCH}" in
     "arm64ec")
         export CONFIG_TARGET_OPTIONS="
             --host aarch64-linux-gnu --enable-archs=i386,x86_64,aarch64 \
-            --with-mingw=clang \
+            --with-mingw=arm64ec-w64-mingw32-clang \
         "
         export CFLAGS="${CFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
         export CXXFLAGS="${CXXFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
@@ -64,8 +83,9 @@ env
 
 echo "Configuring wine build"
 mkdir -p "${WINE_BUILD_DIR}/build-${WINE_TAG}-${WINE_ARCH}"
-cd "$WINE_BUILD_DIR/build-${WINE_TAG}-${WINE_ARCH}"
-${WINE_SRC_DIR}/configure ${CONFIG_TARGET_OPTIONS} ${CONFIG_OPTIONS} --prefix ${WINE_PREFIX_DIR}
+cd "${WINE_BUILD_DIR}/build-${WINE_TAG}-${WINE_ARCH}"
+${WINE_SRC_DIR}/configure ${CONFIG_TARGET_OPTIONS} ${CONFIG_OPTIONS} --prefix ${WINE_PREFIX_DIR} \
+    --with-wine-tools="${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
 echo "Building wine"
 make -j$(nproc) 
 make install
