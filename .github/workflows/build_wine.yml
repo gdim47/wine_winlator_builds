@@ -1,0 +1,19 @@
+name: Build wine 
+
+on:
+  push:
+    tags:
+    - 'wine-*-v*'
+    branches:
+    - 'wine-*'
+
+jobs:
+  x86:
+    uses: ./.github/workflows/build_wine_arch.yml
+    with:
+      wine_arch: "x86"
+
+  arm64ec:
+    uses: ./.github/workflows/build_wine_arch.yml
+    with:
+      wine_arch: "arm64ec"

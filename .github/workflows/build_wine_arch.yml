@@ -1,0 +1,118 @@
+name: Build wine for specific architecture
+
+on:
+  workflow_call:
+    inputs:
+      wine_arch:
+        description: "Wine image architecture"
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      wine_repo:
+        description: Wine git repo that used for build
+        required: true
+        type: string
+      wine_tag:
+        description: "Wine tag that used for build"
+        default: "main"
+        type: string
+      wine_branch:
+        description: "Wine branch name"
+        default: "stable"
+        type: string
+      wine_patches:
+        description: "Name of applied patches to Wine"
+        type: string
+      wine_arch:
+        description: "Wine image architecture"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Extract info from tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            WINE_REPO="${{ github.event.inputs.wine_repo }}"
+            WINE_TAG="${{ github.event.inputs.wine_tag }}"
+            WINE_BRANCH="${{ github.event.inputs.wine_branch }}"
+            WINE_PATCHES="${{ github.event.inputs.wine_patches }}"
+          else
+            WINE_REPO="${{ github.repository }}"
+            WINE_TAG="${GITHUB_REF#refs/tags/}"
+          
+            case "$WINE_TAG" in
+              wine-*-*-v*) 
+                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_PATCHES=$(echo "$TAG_NAME" | cut -d'-' -f3)
+
+                if [ -z "$WINE_PATCHES" ]; then
+                  WINE_PATCHES=""
+                fi
+                ;;
+              wine-*-v*) 
+                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_PATCHES=""
+                ;;
+              wine-*-*)
+                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_PATCHES=$(echo "$TAG_NAME" | cut -d'-' -f3)
+
+                if [ -z "$WINE_PATCHES" ]; then
+                  WINE_PATCHES=""
+                fi
+                ;;
+              wine-*)
+                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_PATCHES=""
+                ;;
+              *)
+                echo "Unknown wine tag format"
+                exit 1
+                ;;
+            esac
+          fi
+          
+          WINE_ARCH="${{ github.event.inputs.wine_arch }}"
+
+          echo "WINE_REPO=$WINE_REPO" >> $GITHUB_ENV
+          echo "WINE_TAG=$WINE_TAG" >> $GITHUB_ENV
+          echo "WINE_BRANCH=$WINE_BARNCH" >> $GITHUB_ENV
+          echo "WINE_ARCH=$WINE_ARCH" >> $GITHUB_ENV
+      - name: Checkout wine repo
+        uses: actions/checkout@v4
+        with:
+          repository: "${{ env.WINE_REPO }}"
+          ref: ${{ env.WINE_TAG }}
+          path: "wine"
+      - name: Download builder rootfs artifact
+        uses: actions/download-artifact@v4
+        with: 
+          name: Builder rootfs images
+          path: ${{ runner.tmp }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Load builder image
+        run: |
+          docker load --input ${{ runner.temp }}/wine_builder_rootfs.tar.xz
+      - name: Run build container 
+        uses: addnab/docker-run-action@v3
+        with:
+          image: wine_builder_rootfs:latest
+          options: |
+            -v ${{ github.workspace }}:/workdir 
+            -e WINE_ARCH="${{ env.WINE_ARCH }}" -e WINE_TAG="${{ env.WINE_TAG }}" 
+            -e WINE_BRANCH="${{ env.WINE_BRANCH }}" -e WINE_PATCHES="${{ env.WINE_PATCHES }}"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-${{ env.WINE_TAG }}-${{ env.WINE_BRANCH }} 
+          path: ./prefix-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}
