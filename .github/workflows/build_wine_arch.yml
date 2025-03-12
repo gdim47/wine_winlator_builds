@@ -85,7 +85,7 @@ jobs:
 
           echo "WINE_REPO=$WINE_REPO" >> $GITHUB_ENV
           echo "WINE_TAG=$WINE_TAG" >> $GITHUB_ENV
-          echo "WINE_BRANCH=$WINE_BARNCH" >> $GITHUB_ENV
+          echo "WINE_BRANCH=$WINE_BRANCH" >> $GITHUB_ENV
           echo "WINE_PATCHES=$WINE_PATCHES" >> $GITHUB_ENV
           echo "WINE_ARCH=$WINE_ARCH" >> $GITHUB_ENV
       - name: Checkout wine repo
@@ -114,7 +114,7 @@ jobs:
             -v ${{ github.workspace }}:/workdir 
             -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
             -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
-          run: /create_wine_archive.sh
+          shell: /create_wine_archive.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
