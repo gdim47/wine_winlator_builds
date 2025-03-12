@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -xe
+
 export WINE_TAG="${WINE_TAG:-wine}"
 export WINE_BRANCH="${WINE_BRANCH:-stable}"
 export WINE_PATCHES="${WINE_PATCHES}"
@@ -36,7 +38,7 @@ case "${WINE_ARCH}" in
     "arm64ec")
         export CONFIG_TARGET_OPTIONS="
             --host aarch64-linux-gnu --enable-archs=i386,x86_64,aarch64 \
-            --with-mingw=arm64ec-w64-mingw32-clang \
+            --with-mingw=clang \
         "
         export CFLAGS="${CFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
         export CXXFLAGS="${CXXFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
@@ -56,6 +58,9 @@ cd "$WINE_SRC_DIR"
 ./dlls/winevulkan/make_vulkan
 # ./tools/make_makefiles
 autoreconf -f
+
+echo "Build environment vars"
+env
 
 echo "Configuring wine build"
 mkdir -p "${WINE_BUILD_DIR}/build-${WINE_TAG}-${WINE_ARCH}"
