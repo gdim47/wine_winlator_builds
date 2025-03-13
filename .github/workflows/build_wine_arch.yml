@@ -106,15 +106,13 @@ jobs:
       - name: Load builder image
         run: |
           docker load --input ${{ runner.temp }}/wine_builder_rootfs.tar.xz
-      - name: Run build container 
-        uses: addnab/docker-run-action@v3
-        with:
-          image: wine_builder_rootfs:latest
-          options: >
-            -v ${{ github.workspace }}:/workdir 
-            -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
-            -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
-          shell: /create_wine_archive.sh
+      - name: Run build container
+        run: >
+          docker run --name builder 
+          -v ${{ github.workspace }}:/workdir 
+          -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
+          -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
+          wine_builder_rootfs 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
