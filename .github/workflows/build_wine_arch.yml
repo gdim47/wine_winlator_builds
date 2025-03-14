@@ -7,6 +7,9 @@ on:
         description: "Wine image architecture"
         required: true
         type: string
+      wine_interpreter:
+        description: "Wine dynamic interpreter path"
+        type: string
 
   workflow_dispatch:
     inputs:
@@ -28,6 +31,9 @@ on:
       wine_arch:
         description: "Wine image architecture"
         required: true
+        type: string
+      wine_interpreter:
+        description: "Wine dynamic interpreter path"
         type: string
 
 jobs:
@@ -82,12 +88,14 @@ jobs:
           fi
           
           WINE_ARCH="${{ github.event.inputs.wine_arch }}"
+          WINE_INTERPRETER_PATH="${{ github.event.inputs.wine_interpreter }}"
 
           echo "WINE_REPO=$WINE_REPO" >> $GITHUB_ENV
           echo "WINE_TAG=$WINE_TAG" >> $GITHUB_ENV
           echo "WINE_BRANCH=$WINE_BRANCH" >> $GITHUB_ENV
           echo "WINE_PATCHES=$WINE_PATCHES" >> $GITHUB_ENV
           echo "WINE_ARCH=$WINE_ARCH" >> $GITHUB_ENV
+          echo "WINE_INTERPRETER_PATH=$WINE_INTERPRETER_PATH" >> $GITHUB_ENV
       - name: Checkout wine repo
         uses: actions/checkout@v4
         with:
@@ -112,6 +120,7 @@ jobs:
           -v ${{ github.workspace }}:/workdir 
           -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
           -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
+          -e WINE_INTERPRETER_PATH=${{ env.WINE_INTERPRETER_PATH }}
           wine_builder_rootfs
       - name: Upload configuration log if configuration fails
         if: failure()
