@@ -1,0 +1,108 @@
+ARG UBUNTU_VERSION="noble"
+ARG LLVM_MINGW_LINK="https://github.com/bylaws/llvm-mingw"
+ARG LLVM_MINGW_VERSION="20250228"
+ARG LLVM_MINGW_ARCH="x86_64"
+
+FROM ubuntu:${UBUNTU_VERSION}
+
+ARG UBUNTU_VERSION
+ARG LLVM_MINGW_LINK
+ARG LLVM_MINGW_VERSION
+ARG LLVM_MINGW_ARCH
+
+# add ubuntu-ports repo for arm64 packages 
+RUN env DEBIAN_FRONTEND="noninteractive" apt-get update -yq && \
+    apt-get install --no-install-recommends ca-certificates -yq && \
+    printf "Types: deb\n\
+URIs: http://archive.ubuntu.com/ubuntu/\n\
+Suites: noble noble-updates noble-backports\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: amd64 i386\n\
+\n\
+Types: deb\n\
+URIs: http://security.ubuntu.com/ubuntu/\n\
+Suites: noble-security\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: amd64 i386\n\
+\n\
+Types: deb\n\
+URIs: https://ports.ubuntu.com/ubuntu-ports/\n\
+Suites: noble noble-updates noble-backports noble-security\n\
+Components: main universe restricted multiverse\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+Architectures: arm64\n" \
+    > /etc/apt/sources.list.d/ubuntu.sources && \
+    dpkg --add-architecture arm64 && dpkg --add-architecture amd64
+    
+# generate pinning for python3.12(for 24.04 release) package based on image platform. 
+# This is required to successfully install libgstreamer-plugins-base1.0-dev package
+RUN printf "\
+Package: python3.12:amd64\n\
+Pin: release *\n\
+Pin-Priority: 1001\n\
+\n\
+Package: python3.12:arm64\n\
+Pin: release *\n\
+Pin-Priority: -1\n" \
+    > /etc/apt/preferences.d/pin-python3 && \
+    env DEBIAN_FRONTEND="noninteractive" apt-get update -yq
+
+# install build tools and compilers
+RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recommends \
+    locales python3 vim-tiny \
+    unzip bzip2 wget git zip zstd lz4 xz-utils glslang-dev \
+    autoconf autogen automake autopoint bison flex gettext m4 pkg-config \
+    build-essential cmake meson libtool ninja-build \
+    libgcc-13-dev patchelf && \
+    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
+    wget -O /llvm-mingw.tar.xz \
+    ${LLVM_MINGW_LINK}/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH}.tar.xz && \
+    tar xf /llvm-mingw.tar.xz --directory=/ && \
+    mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
+    rm /llvm-mingw.tar.xz
+
+
+# deps for x86_64 and arm64ec wine build
+RUN for arch in arm64 amd64; do \
+    env DEBIAN_FRONTEND="noninteractive" apt-get -o Dpkg::Options::="--force-overwrite" install -yq --no-install-recommends \
+    libgcc-13-dev:$arch \
+    libmpeg2-4-dev:$arch libmpg123-dev:$arch libogg-dev:$arch \
+    libjpeg-dev:$arch libjpeg-turbo8-dev:$arch libpng-dev:$arch \
+    libsndfile1-dev:$arch \
+    libasound2-dev:$arch libpulse-dev:$arch \
+    libgnutls30:$arch libgnutls-openssl27:$arch \
+    libbrotli-dev:$arch libzstd-dev:$arch zlib1g-dev:$arch \
+    libfontconfig1-dev:$arch libfreetype-dev:$arch \
+    libx11-dev:$arch libx11-xcb-dev:$arch libxau-dev:$arch \
+    libxcb-dri3-dev:$arch libxext-dev:$arch \
+    libxcb-present-dev:$arch libxcb-randr0-dev:$arch \
+    libxcb-render0-dev:$arch libxcb-shm0-dev:$arch \
+    libxcb-sync-dev:$arch libxcomposite-dev:$arch libxrandr-dev:$arch \
+    libxi-dev:$arch libxcursor-dev:$arch \
+    libxrender-dev:$arch libxext-dev:$arch libxdmcp-dev:$arch \
+    libxrandr-dev:$arch libdrm-dev:$arch libgl-dev:$arch \
+    libegl-dev:$arch libvulkan-dev:$arch \ 
+    libgstreamer1.0-dev:$arch libgstreamer-plugins-base1.0-dev:$arch; done 
+# because libgstreamer-plugins-base1.0-dev have arch-independent files,
+# unpack package in per-arch directories
+RUN for arch in arm64 amd64; do \
+        mkdir -p ./tmp-gstreamer-$arch /usr/local/gstreamer-1.0-$arch/include && \
+        env DEBIAN_FRONTEND="noninteractive" apt-get download -yq libgstreamer-plugins-base1.0-dev:$arch && \
+        dpkg-deb -x libgstreamer-plugins-base1.0-dev*$arch.deb ./tmp-gstreamer-$arch && \
+        cp -r ./tmp-gstreamer-$arch/usr/lib /usr/ && \
+        cp -r ./tmp-gstreamer-$arch/usr/include /usr/local/gstreamer-1.0-$arch && \
+        cp -r ./tmp-gstreamer-$arch/usr/share /usr/local/gstreamer-1.0-$arch && \
+        rm -r libgstreamer-plugins-base1.0-dev*$arch.deb ./tmp-gstreamer-$arch; \ 
+    done && apt-get clean -yq && rm -rf /var/lib/apt/lists/*
+
+COPY create_wine_archive.sh /
+
+ENV PATH="/llvm-mingw/bin:$PATH"
+ENV LANG=en_US.UTF-8
+ENV CC="clang"
+ENV CXX="clang++"
+
+WORKDIR /workdir
+ENTRYPOINT [ "/create_wine_archive.sh" ]
