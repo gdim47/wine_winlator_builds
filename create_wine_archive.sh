@@ -22,6 +22,10 @@ export CONFIG_OPTIONS="
     --disable-win16 --disable-tests --enable-build-id \
 "
 
+if [ -n "${WINE_INTERPRETER_PATH}" ]; then
+    echo "Will use interpeter path for wine executables: ${WINE_INTERPRETER_PATH}"
+fi
+
 echo "Preparing wine git repo"
 cd "${WINE_SRC_DIR}"
 ./tools/make_requests
@@ -99,4 +103,16 @@ ${WINE_SRC_DIR}/configure ${CONFIG_TARGET_OPTIONS} ${CONFIG_OPTIONS} --prefix ${
 echo "Building wine"
 make -j$(nproc) 
 make install
+
+if [ -n "${WINE_INTERPRETER_PATH}" ]; then
+    echo "Set interpeter path for wine executables to: ${WINE_INTERPRETER_PATH}"
+    
+    WINE_BIN_DIR="${WINE_PREFIX_DIR}/bin"
+    for f in "${WINE_BIN_DIR}"/*; do
+        if [ -f "$f" ] && [ ! -L "$f" ]; then
+            patchelf --set-interpreter ${WINE_INTERPRETER_PATH} "$f"
+        fi
+    done
+fi
+
 echo "Wine build finished"
