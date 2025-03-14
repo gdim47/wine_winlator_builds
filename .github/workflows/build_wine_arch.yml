@@ -112,7 +112,13 @@ jobs:
           -v ${{ github.workspace }}:/workdir 
           -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
           -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
-          wine_builder_rootfs 
+          wine_builder_rootfs
+      - name: Upload configuration log if configuration fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.WINE_TAG }}-${{ env.WINE_BRANCH }}-${{ env.WINE_ARCH }}-config.log
+          path: ./wine-build/build-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}/config.log
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
