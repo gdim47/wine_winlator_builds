@@ -30,13 +30,23 @@ cd "${WINE_SRC_DIR}"
 # ./tools/make_makefiles
 autoreconf -f
 
-echo "Build environment vars"
-env
+# detect build machine triplet
+export BUILD_TRIPLET="$(clang -dumpmachine)"
+
+case "${BUILD_TRIPLET}" in
+    x86_64-*-linux-gnu|x86_64-linux-gnu)
+        export WINE_TOOLS_CONFIG_TARGET_OPTIONS="--enable-archs=i386,x86_64"
+        ;;
+    *)
+        echo "Unsupported build triplet: ${BUILD_TRIPLET}"
+        exit 1
+        ;;
+esac
 
 echo "Configuring wine tools build"
 mkdir -p "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
 cd "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
-${WINE_SRC_DIR}/configure --enable-win64
+${WINE_SRC_DIR}/configure "${WINE_TOOLS_CONFIG_TARGET_OPTIONS}"
 echo "Building wine tools"
 make -j$(nproc) __tooldeps__
 
