@@ -134,5 +134,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: wine-${{ env.WINE_TAG }}-${{ env.WINE_BRANCH }} 
+          name: wine-${{ env.WINE_BRANCH }}-${{ env.WINE_ARCH }} 
           path: ./prefix-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}
