@@ -1,6 +1,9 @@
 name: Create builder rootfs 
 
 on:
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 jobs:
