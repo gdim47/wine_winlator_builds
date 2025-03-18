@@ -1,0 +1,18 @@
+PROGRAMS = wmc
+UNIX_LIBS = $(GETTEXTPO_LIBS)
+
+SOURCES = \
+	lang.c \
+	mcl.c \
+	mcy.y \
+	po.c \
+	utils.c \
+	wmc.c \
+	wmc.man.in \
+	write.c
+
+wmc_EXTRADEFS = \
+	-DNLSDIR="\"${nlsdir}\"" \
+	-DBIN_TO_NLSDIR=\"`${MAKEDEP} -R ${bindir} ${nlsdir}`\"
+
+INSTALL_DEV = $(PROGRAMS)

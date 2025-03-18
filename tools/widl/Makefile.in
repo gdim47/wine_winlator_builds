@@ -1,0 +1,32 @@
+PROGRAMS = widl
+PARENTSRC = ../wrc
+
+SOURCES = \
+	attribute.c \
+	client.c \
+	expr.c \
+	hash.c \
+	header.c \
+	parser.l \
+	parser.y \
+	ppl.l \
+	ppy.y \
+	proxy.c \
+	register.c \
+	server.c \
+	typegen.c \
+	typelib.c \
+	typetree.c \
+	utils.c \
+	widl.c \
+	widl.man.in \
+	wpp.c \
+	write_msft.c
+
+widl_EXTRADEFS = \
+	-DINCLUDEDIR="\"${includedir}\"" \
+	-DDLLDIR="\"${dlldir}\"" \
+	-DBIN_TO_INCLUDEDIR=\"`${MAKEDEP} -R ${bindir} ${includedir}`\" \
+	-DBIN_TO_DLLDIR=\"`${MAKEDEP} -R ${bindir} ${dlldir}`\"
+
+INSTALL_DEV = $(PROGRAMS)
