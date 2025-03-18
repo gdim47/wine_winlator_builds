@@ -54,30 +54,30 @@ jobs:
           else
             WINE_REPO="${{ github.repository }}"
             WINE_TAG="${{ github.ref_name }}" # todo: correctly handle pull requests
-          
+
             case "${WINE_TAG}" in
               wine-*-*-v*) 
-                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
-                WINE_PATCHES=$(echo "$TAG_NAME" | cut -d'-' -f3)
+                WINE_BRANCH=$(echo "${WINE_TAG}" | cut -d'-' -f2)
+                WINE_PATCHES=$(echo "${WINE_TAG}" | cut -d'-' -f3)
 
                 if [ -z "$WINE_PATCHES" ]; then
                   WINE_PATCHES=""
                 fi
                 ;;
               wine-*-v*) 
-                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_BRANCH=$(echo "${WINE_TAG}" | cut -d'-' -f2)
                 WINE_PATCHES=""
                 ;;
               wine-*-*)
-                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
-                WINE_PATCHES=$(echo "$TAG_NAME" | cut -d'-' -f3)
+                WINE_BRANCH=$(echo "${WINE_TAG}" | cut -d'-' -f2)
+                WINE_PATCHES=$(echo "${WINE_TAG}" | cut -d'-' -f3)
 
                 if [ -z "$WINE_PATCHES" ]; then
                   WINE_PATCHES=""
                 fi
                 ;;
               wine-*)
-                WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
+                WINE_BRANCH=$(echo "${WINE_TAG}" | cut -d'-' -f2)
                 WINE_PATCHES=""
                 ;;
               *)
@@ -86,9 +86,15 @@ jobs:
                 ;;
             esac
           fi
+         
+          if [ "${{ github.event_name }}" = "workflow_call" ]; then
+            WINE_ARCH="${{ inputs.wine_arch }}"
+            WINE_INTERPRETER_PATH="${{ inputs.wine_interpreter }}"
+          else 
+            WINE_ARCH="${{ github.event.inputs.wine_arch }}"
+            WINE_INTERPRETER_PATH="${{ github.event.inputs.wine_interpreter }}"
+          fi
           
-          WINE_ARCH="${{ github.event.inputs.wine_arch }}"
-          WINE_INTERPRETER_PATH="${{ github.event.inputs.wine_interpreter }}"
 
           echo "WINE_REPO=$WINE_REPO" >> $GITHUB_ENV
           echo "WINE_TAG=$WINE_TAG" >> $GITHUB_ENV
