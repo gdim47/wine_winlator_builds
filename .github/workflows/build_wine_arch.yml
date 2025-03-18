@@ -10,6 +10,10 @@ on:
       wine_interpreter:
         description: "Wine dynamic interpreter path"
         type: string
+      run_environment:
+        description: "Name of environment where wine runs"
+        default: "generic"
+        type: string
 
   workflow_dispatch:
     inputs:
@@ -35,6 +39,10 @@ on:
       wine_interpreter:
         description: "Wine dynamic interpreter path"
         type: string
+      run_environment:
+        description: "Name of environment where wine runs"
+        default: "generic"
+        type: string
 
 jobs:
   build:
@@ -53,6 +61,7 @@ jobs:
             WINE_PATCHES="${{ github.event.inputs.wine_patches }}"
             WINE_ARCH="${{ github.event.inputs.wine_arch }}"
             WINE_INTERPRETER_PATH="${{ github.event.inputs.wine_interpreter }}"
+            RUN_ENVIRONMENT="${{ github.event.inputs.run_environment }}"
           else
             WINE_REPO="${{ github.repository }}"
             WINE_TAG="${{ github.ref_name }}" # todo: correctly handle pull requests
@@ -90,6 +99,7 @@ jobs:
             
             WINE_ARCH="${{ inputs.wine_arch }}"
             WINE_INTERPRETER_PATH="${{ inputs.wine_interpreter }}"
+            RUN_ENVIRONMENT="${{ inputs.run_environment }}"
           fi
           
           echo "WINE_REPO=$WINE_REPO" >> $GITHUB_ENV
@@ -98,6 +108,7 @@ jobs:
           echo "WINE_PATCHES=$WINE_PATCHES" >> $GITHUB_ENV
           echo "WINE_ARCH=$WINE_ARCH" >> $GITHUB_ENV
           echo "WINE_INTERPRETER_PATH=$WINE_INTERPRETER_PATH" >> $GITHUB_ENV
+          echo "RUN_ENVIRONMENT=$RUN_ENVIRONMENT" >> $GITHUB_ENV
       - name: Checkout wine repo
         uses: actions/checkout@v4
         with:
@@ -123,6 +134,7 @@ jobs:
           -e WINE_ARCH=${{ env.WINE_ARCH }} -e WINE_TAG=${{ env.WINE_TAG }} 
           -e WINE_BRANCH=${{ env.WINE_BRANCH }} -e WINE_PATCHES=${{ env.WINE_PATCHES }}
           -e WINE_INTERPRETER_PATH=${{ env.WINE_INTERPRETER_PATH }}
+          -e RUN_ENVIRONMENT=${{ env.RUN_ENVIRONMENT }}
           wine_builder_rootfs
       - name: Upload configuration log if configuration fails
         if: failure()
@@ -134,5 +146,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: wine-${{ env.WINE_BRANCH }}-${{ env.WINE_ARCH }} 
-          path: ./prefix-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}
+          name: wine-${{ env.RUN_ENVIRONMENT }}-${{ env.WINE_BRANCH }}-${{ env.WINE_ARCH }}
+          path: ./prefix-${{ env.RUN_ENVIRONMENT }}-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}

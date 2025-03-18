@@ -18,3 +18,10 @@ jobs:
     uses: ./.github/workflows/build_wine_arch.yml
     with:
       wine_arch: "arm64ec"
+  
+  winlator_arm64ec:
+    uses: ./.github/workflows/build_wine_arch.yml
+    with:
+      wine_arch: "arm64ec"
+      wine_interpreter: "/data/data/com.winlator/files/rootfs/lib/ld-linux-aarch64.so.1"
+      run_environment: "winlator"
