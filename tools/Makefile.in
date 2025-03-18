@@ -1,0 +1,7 @@
+PROGRAMS = \
+	make_xftmpl
+
+SOURCES = \
+	gdbinit.py.in \
+	make_xftmpl.c \
+	wineapploader.in
