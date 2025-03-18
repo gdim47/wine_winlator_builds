@@ -1,6 +1,7 @@
 name: Build wine 
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'wine-**-v[0-9]+.[0-9]+'
