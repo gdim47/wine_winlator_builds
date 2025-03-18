@@ -53,7 +53,7 @@ esac
 
 echo "Configuring wine tools build"
 mkdir -p "${WINE_BUILD_DIR}/build-tools-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
-cd "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
+cd "${WINE_BUILD_DIR}/build-tools-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 ${WINE_SRC_DIR}/configure "${WINE_TOOLS_CONFIG_TARGET_OPTIONS}"
 echo "Building wine tools"
 make -j$(nproc) __tooldeps__
