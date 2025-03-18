@@ -1,0 +1,7 @@
+MODULE    = stdole32.tlb
+
+EXTRADLLFLAGS = -Wb,--data-only
+
+SOURCES = \
+	rsrc.rc \
+	std_ole_v1.idl
