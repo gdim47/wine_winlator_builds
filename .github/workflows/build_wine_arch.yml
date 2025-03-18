@@ -53,7 +53,7 @@ jobs:
             WINE_PATCHES="${{ github.event.inputs.wine_patches }}"
           else
             WINE_REPO="${{ github.repository }}"
-            WINE_TAG="${GITHUB_REF#refs/tags/}"
+            WINE_TAG="${{ github.ref_name }}" # todo: correctly handle pull requests
           
             case "${WINE_TAG}" in
               wine-*-*-v*) 
