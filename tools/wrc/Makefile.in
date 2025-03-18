@@ -1,0 +1,23 @@
+PROGRAMS = wrc
+UNIX_LIBS = $(GETTEXTPO_LIBS)
+
+SOURCES = \
+	genres.c \
+	newstruc.c \
+	parser.l \
+	parser.y \
+	po.c \
+	ppl.l \
+	ppy.y \
+	utils.c \
+	wpp.c \
+	wrc.c \
+	wrc.man.in
+
+wrc_EXTRADEFS = \
+	-DNLSDIR="\"${nlsdir}\"" \
+	-DINCLUDEDIR="\"${includedir}\"" \
+	-DBIN_TO_NLSDIR=\"`${MAKEDEP} -R ${bindir} ${nlsdir}`\" \
+	-DBIN_TO_INCLUDEDIR=\"`${MAKEDEP} -R ${bindir} ${includedir}`\"
+
+INSTALL_DEV = $(PROGRAMS)
