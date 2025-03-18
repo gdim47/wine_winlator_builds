@@ -55,7 +55,7 @@ jobs:
             WINE_REPO="${{ github.repository }}"
             WINE_TAG="${GITHUB_REF#refs/tags/}"
           
-            case "$WINE_TAG" in
+            case "${WINE_TAG}" in
               wine-*-*-v*) 
                 WINE_BRANCH=$(echo "$TAG_NAME" | cut -d'-' -f2)
                 WINE_PATCHES=$(echo "$TAG_NAME" | cut -d'-' -f3)
@@ -81,7 +81,7 @@ jobs:
                 WINE_PATCHES=""
                 ;;
               *)
-                echo "Unknown wine tag format"
+                echo "Unknown wine tag format: ${WINE_TAG}"
                 exit 1
                 ;;
             esac
