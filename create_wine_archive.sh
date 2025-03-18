@@ -6,7 +6,7 @@ export WINE_PATCHES="${WINE_PATCHES}"
 export WINE_ARCH="${WINE_ARCH:-x86}"
 export WINE_SRC_DIR="${WINE_SRC_DIR:-/workdir/wine}"
 export WINE_BUILD_DIR="${WINE_BUILD_DIR:-/workdir/wine-build}"
-export WINE_PREFIX_DIR="${WINE_PREFIX_DIR:-/workdir/prefix-${WINE_TAG}-${WINE_ARCH}}"
+export WINE_PREFIX_DIR="${WINE_PREFIX_DIR:-/workdir/prefix-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}}"
 
 export CONFIG_OPTIONS="
     --disable-winemenubuilder \
@@ -24,6 +24,10 @@ export CONFIG_OPTIONS="
 
 if [ -n "${WINE_INTERPRETER_PATH}" ]; then
     echo "Will use interpeter path for wine executables: ${WINE_INTERPRETER_PATH}"
+fi
+
+if [ -n "${RUN_ENVIRONMENT}" ]; then
+    echo "Run environment for build: ${RUN_ENVIRONMENT}"
 fi
 
 echo "Preparing wine git repo"
@@ -48,7 +52,7 @@ case "${BUILD_TRIPLET}" in
 esac
 
 echo "Configuring wine tools build"
-mkdir -p "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
+mkdir -p "${WINE_BUILD_DIR}/build-tools-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 cd "${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
 ${WINE_SRC_DIR}/configure "${WINE_TOOLS_CONFIG_TARGET_OPTIONS}"
 echo "Building wine tools"
@@ -96,10 +100,10 @@ echo "Build environment vars"
 env
 
 echo "Configuring wine build"
-mkdir -p "${WINE_BUILD_DIR}/build-${WINE_TAG}-${WINE_ARCH}"
-cd "${WINE_BUILD_DIR}/build-${WINE_TAG}-${WINE_ARCH}"
+mkdir -p "${WINE_BUILD_DIR}/build-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
+cd "${WINE_BUILD_DIR}/build-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 ${WINE_SRC_DIR}/configure ${CONFIG_TARGET_OPTIONS} ${CONFIG_OPTIONS} --prefix ${WINE_PREFIX_DIR} \
-    --with-wine-tools="${WINE_BUILD_DIR}/build-tools-${WINE_TAG}-${WINE_ARCH}"
+    --with-wine-tools="${WINE_BUILD_DIR}/build-tools-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 echo "Building wine"
 make -j$(nproc) 
 make install
