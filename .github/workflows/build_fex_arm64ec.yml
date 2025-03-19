@@ -68,7 +68,7 @@ jobs:
           -v ${{ github.workspace }}:/workdir
           -e FEX_REPO=${{ env.FEX_REPO }} -e FEX_TAG=${{ env.FEX_TAG }}
           -e FEX_REF=${{ steps.fex_checkout.commit }}
-          --entrypoint=/build_fex_archive.sh
+          --entrypoint=/create_fex_archive.sh
           wine_builder_rootfs
       - name: Upload artifact
         uses: actions/upload-artifact@v4

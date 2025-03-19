@@ -1,0 +1,90 @@
+name: Build vulkan-based library for arm64ec
+
+on:
+  workflow_call:
+    inputs:
+      vk_lib_name:
+        description: Name of vulkan-based library
+        required: true
+        type: string
+      vk_lib_repo:
+        description: dxvk/vkd3d-proton git repo that used for build
+        required: true
+        type: string
+      vk_lib_tag:
+        description: dxvk/vkd3d-proton tag that used for build
+        default: main
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      vk_lib_name:
+        description: Name of vulkan-based library
+        required: true
+        type: string
+      vk_lib_repo:
+        description: dxvk/vkd3d-proton git repo that used for build
+        required: true
+        type: string
+      vk_lib_tag:
+        description: dxvk/vkd3d-proton tag that used for build
+        default: main
+        type: string
+
+jobs:
+  vk_lib-arm64ec:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract inputs into environment variables 
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VK_LIB_NAME="${{ github.event.inputs.vk_lib_name }}"
+            VK_LIB_REPO="${{ github.event.inputs.vk_lib_repo }}"
+            VK_LIB_TAG="${{ github.event.inputs.vk_lib_tag }}"
+          else
+            VK_LIB_NAME="${{ github.event.inputs.vk_lib_name }}"
+            VK_LIB_REPO="${{ inputs.vk_lib_repo }}"
+            VK_LIB_TAG="${{ inputs.vk_lib_tag }}"
+          fi
+         
+          echo "VK_LIB_NAME=$VK_LIB_NAME" >> $GITHUB_ENV
+          echo "VK_LIB_REPO=$VK_LIB_REPO" >> $GITHUB_ENV
+          echo "VK_LIB_TAG=$VK_LIB_TAG" >> $GITHUB_ENV
+      - name: Checkout library repository
+        id: vk_lib_checkout 
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.VK_LIB_REPO }}
+          ref: ${{ env.VK_LIB_TAG }}
+          submodules: 'recursive'
+          path: ${{ env.VK_LIB_NAME }} 
+      - name: Download builder rootfs artifact
+        uses: dawidd6/action-download-artifact@v9
+        with: 
+          workflow: build_env.yml
+          workflow_conclusion: success
+          path: ${{ runner.temp }}
+          name: Builder rootfs images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Load builder image
+        run: |
+          docker load --input ${{ runner.temp }}/wine_builder_rootfs.tar.xz
+      - name: Run build container
+        run: >
+          docker run --name builder 
+          -v ${{ github.workspace }}:/workdir
+          -e VK_LIB_NAME=${{ env.VK_LIB_NAME }}
+          -e VK_LIB_REPO=${{ env.VK_LIB_REPO }} -e VK_LIB_TAG=${{ env.VK_LIB_TAG }}
+          -e VK_LIB_REF=${{ steps.vk_lib_checkout.commit }}
+          --entrypoint=/create_vk_lib_archive.sh
+          wine_builder_rootfs
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.commit }}
+          path: ./prefix-${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.commit }}
