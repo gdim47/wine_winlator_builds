@@ -1,3 +1,4 @@
 *
 !create_wine_archive.sh
+!create_fex_archive.sh
 !toolchains/*
