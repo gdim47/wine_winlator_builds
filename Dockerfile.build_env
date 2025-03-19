@@ -99,6 +99,7 @@ RUN for arch in arm64 amd64; do \
 
 COPY create_wine_archive.sh /
 COPY create_fex_archive.sh /
+COPY create_vk_lib_archive.sh /
 COPY toolchains /toolchains
 
 ENV PATH="/llvm-mingw/bin:$PATH"
