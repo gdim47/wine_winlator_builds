@@ -8,6 +8,6 @@ widl = 'arm64ec-w64-mingw32-widl'
 
 [host_machine]
 system = 'windows'
-cpu_family = 'arm64ec'
-cpu = 'arm64ec'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
 endian = 'little'

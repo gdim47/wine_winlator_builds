@@ -16,6 +16,9 @@ export CONFIG_OPTIONS="
     --buildtype debugoptimized \
 "
 
+# hack: add lib src dir to git's safe.directory
+git config --global --add safe.directory ${VK_LIB_SRC_DIR}
+
 echo "Build environment vars"
 env
 
