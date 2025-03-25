@@ -54,14 +54,15 @@ RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recomm
     locales python3 vim-tiny \
     unzip bzip2 wget git zip zstd lz4 xz-utils glslang-dev \
     autoconf autogen automake autopoint bison flex gettext m4 pkg-config \
-    build-essential cmake meson libtool ninja-build \
+    build-essential cmake meson libtool python3-pip \
     libgcc-13-dev patchelf glslang-tools && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
     wget -O /llvm-mingw.tar.xz \
     ${LLVM_MINGW_LINK}/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH}.tar.xz && \
     tar xf /llvm-mingw.tar.xz --directory=/ && \
     mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
-    rm /llvm-mingw.tar.xz
+    rm /llvm-mingw.tar.xz && \
+    pip3 install --break-system-packages --user meson==1.7.0
 
 
 # deps for x86_64 and arm64ec wine build
