@@ -67,12 +67,12 @@ jobs:
           docker run --name builder 
           -v ${{ github.workspace }}:/workdir
           -e FEX_REPO=${{ env.FEX_REPO }} -e FEX_TAG=${{ env.FEX_TAG }}
-          -e FEX_REF=${{ steps.fex_checkout.commit }}
+          -e FEX_REF=${{ steps.fex_checkout.outputs.commit }}
           --entrypoint=/create_fex_archive.sh
           wine_builder_rootfs
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: FEX-${{ env.FEX_TAG }}-${{ steps.fex_checkout.commit }}
-          path: ./prefix-${{ env.FEX_TAG }}-${{ steps.fex_checkout.commit }}
+          name: FEX-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}
+          path: ./prefix-fex-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}

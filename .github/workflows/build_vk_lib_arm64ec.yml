@@ -79,12 +79,12 @@ jobs:
           -v ${{ github.workspace }}:/workdir
           -e VK_LIB_NAME=${{ env.VK_LIB_NAME }}
           -e VK_LIB_REPO=${{ env.VK_LIB_REPO }} -e VK_LIB_TAG=${{ env.VK_LIB_TAG }}
-          -e VK_LIB_REF=${{ steps.vk_lib_checkout.commit }}
+          -e VK_LIB_REF=${{ steps.vk_lib_checkout.outputs.commit }}
           --entrypoint=/create_vk_lib_archive.sh
           wine_builder_rootfs
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: ${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.commit }}
-          path: ./prefix-${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.commit }}
+          name: ${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}
+          path: ./prefix-${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}
