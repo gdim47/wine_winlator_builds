@@ -10,19 +10,44 @@ on:
       - 'wine-**'
 
 jobs:
-  x86:
-    uses: ./.github/workflows/build_wine_arch.yml
-    with:
-      wine_arch: "x86"
+  matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix_arch: ${{ steps.get-matrix.outputs.matrix_arch }}
+      matrix_config: ${{ steps.get-matrix.outputs.matrix_config }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: get-matrix
+        run: |
+          MATRIX_ARCH=$(echo $(cat .github/workflows/matrix.json | jq .arch) | sed 's/ //g' )
+          MATRIX_CONFIG=$(echo $(cat .github/workflows/matrix.json | jq .config) | sed 's/ //g' )
+          echo "matrix_arch=${MATRIX_ARCH}" >> $GITHUB_OUTPUT
+          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
 
-  arm64ec:
+  build-wine:
+    needs: [ matrix ]
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
+        config: ${{ fromJson(needs.matrix.outputs.matrix_config) }}
+    name: Build wine ${{ matrix.arch }} for ${{ matrix.config.environment }}
     uses: ./.github/workflows/build_wine_arch.yml
     with:
-      wine_arch: "arm64ec"
-  
-  winlator_arm64ec:
-    uses: ./.github/workflows/build_wine_arch.yml
-    with:
-      wine_arch: "arm64ec"
-      wine_interpreter: "/data/data/com.winlator/files/rootfs/lib/ld-linux-aarch64.so.1"
-      run_environment: "winlator"
+      wine_arch: ${{ matrix.arch }}
+      wine_interpreter: ${{ matrix.config.interpreter_path }}
+      run_environment: ${{ matrix.config.environment }}
+
+  wcp-packaging:
+    runs-on: ubuntu-24.04
+    needs: [ matrix, build-wine ]
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
+        config: ${{ fromJson(needs.matrix.outputs.matrix_config) }}
+        exclude:
+          - config: { "environment": "generic", "intepreter_path": "" }
+    steps:
+      - name: Download wine artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build-wine.outputs['${{ matrix.arch }}-${{ matrix.config.environment }}'].wine_artifact_name }}
