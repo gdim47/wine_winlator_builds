@@ -36,18 +36,110 @@ jobs:
       wine_arch: ${{ matrix.arch }}
       wine_interpreter: ${{ matrix.config.interpreter_path }}
       run_environment: ${{ matrix.config.environment }}
+  
+  build-dxvk:
+    needs: [ matrix ]
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
+    name: Build dxvk ${{ matrix.arch }} 
+    uses: ./.github/workflows/build_vk_lib.yml
+    with:
+      vk_lib_name: "dxvk"
+      vk_lib_arch: ${{ matrix.arch }}
+      vk_lib_repo: "doitsujin/dxvk"
+      vk_lib_tag: "v2.4.1"
+
+  build-vkd3d-proton:
+    needs: [ matrix ]
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
+    name: Build vkd3d-proton ${{ matrix.arch }} 
+    uses: ./.github/workflows/build_vk_lib.yml
+    with:
+      vk_lib_name: "vkd3d-proton"
+      vk_lib_arch: ${{ matrix.arch }}
+      vk_lib_repo: "HansKristian-Work/vkd3d-proton"
+      vk_lib_tag: "v2.14.1"
+ 
+  build-fex-arm64ec:
+    name: Build FEX arm64ec
+    uses: ./.github/workflows/build_fex_arm64ec.yml
+    with:
+      fex_repo: "FEX-Emu/FEX"
+      fex_tag: "main"
 
   wcp-packaging:
     runs-on: ubuntu-24.04
-    needs: [ matrix, build-wine ]
+    needs: [ matrix, build-wine, build-dxvk, build-vkd3d-proton, build-fex-arm64ec ]
     strategy:
       matrix:
         arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
         config: ${{ fromJson(needs.matrix.outputs.matrix_config) }}
         exclude:
           - config: { "environment": "generic", "intepreter_path": "" }
+    name: Create wcp image ${{ matrix.arch }}
     steps:
-      - name: Download wine artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout wine repository
+        uses: actions/checkout@v4
         with:
-          name: ${{ needs.build-wine.outputs['${{ matrix.arch }}-${{ matrix.config.environment }}'].wine_artifact_name }}
+          path: repo
+          sparse-checkout: |
+            profile.json
+          sparse-checkout-cone-mode: false
+      - name: Download wine artifact
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          # note: change `name` regexp when artifacts name format changes
+          name: wine-${{ matrix.config.environment }}-.*-${{ matrix.arch }}
+          name_is_regexp: true
+          workflow_conclusion: ""
+          run_id: ${{ github.run_id }}
+      - name: Download dxvk artifact
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          # note: change `name` regexp when artifacts name format changes
+          name: dxvk-${{ matrix.arch }}-.*
+          name_is_regexp: true
+          workflow_conclusion: ""
+          run_id: ${{ github.run_id }}
+          path: artifact-libs
+      - name: Download vkd3d-proton artifact
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          # note: change `name` regexp when artifacts name format changes
+          name: vkd3d-proton-${{ matrix.arch }}-.*
+          name_is_regexp: true
+          workflow_conclusion: ""
+          run_id: ${{ github.run_id }}
+          path: artifact-libs
+      - name: Download FEX arm64ec artifact
+        if: matrix.arch == 'arm64ec'
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          # note: change `name` regexp when artifacts name format changes
+          name: FEX-.*
+          name_is_regexp: true
+          workflow_conclusion: ""
+          run_id: ${{ github.run_id }}
+          path: artifact-libs
+      - name: Merge artifacts
+        run: |
+          mv wine-* result
+          find `pwd`/artifact-libs/ -mindepth 2 -maxdepth 2 -type d -exec cp -r --update=all {} `pwd`/result \;
+      - name: Generate prefix pack
+        run: | # todo: replace placeholder with actual code
+          touch result/prefixPack.txz
+      - name: Generate wcp
+        run: |
+          cp repo/profile.json result/profile.json
+          cd result
+          tar -cJf ${{ runner.temp }}/wine-${{ needs.build-wine.outputs.wine_branch }}-${{ matrix.arch }}.tar.xz *
+          mv ${{ runner.temp }}/wine-${{ needs.build-wine.outputs.wine_branch }}-${{ matrix.arch }}.tar.xz ${{ runner.temp }}/wine-${{ needs.build-wine.outputs.wine_branch }}-${{ matrix.arch }}.wcp
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: Winlator wcp wine-${{ needs.build-wine.outputs.wine_branch }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/wine-${{ needs.build-wine.outputs.wine_branch }}-${{ matrix.arch }}.wcp
