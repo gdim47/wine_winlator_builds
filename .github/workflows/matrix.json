@@ -1,0 +1,13 @@
+{
+  "arch": [ "arm64ec", "x86" ],
+  "config": [
+    {
+        "environment": "generic",
+        "intepreter_path": ""
+    },
+    {
+        "environment": "winlator",
+        "interpreter_path": "/data/data/com.winlator/files/rootfs/lib/ld-linux-aarch64.so.1"
+    }
+  ]
+}

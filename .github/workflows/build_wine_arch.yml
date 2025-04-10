@@ -14,6 +14,19 @@ on:
         description: "Name of environment where wine runs"
         default: "generic"
         type: string
+    outputs:
+      wine_artifact_name:
+        description: Artifact name
+        value: ${{ jobs.build.outputs.wine_artifact_name }}
+      wine_branch:
+        description: Wine branch name
+        value: ${{ jobs.build.outputs.wine_branch }}
+      wine_patches:
+        description: Name of applied patches to wine(staging, stable, etc)
+        value: ${{ jobs.build.outputs.wine_patches }}
+      wine_arch:
+        description: Wine image architecture
+        value: ${{ jobs.build.outputs.wine_arch }}
 
   workflow_dispatch:
     inputs:
@@ -47,12 +60,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
-
+    outputs:
+      wine_artifact_name: ${{ steps.extract-info.outputs.wine_artifact_name }}
+      wine_branch: ${{ steps.extract-info.outputs.wine_branch }}
+      wine_patches: ${{ steps.extract-info.outputs.wine_patches }}
+      wine_arch: ${{ steps.extract-info.outputs.wine_arch }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       
       - name: Extract info from tag
+        id: extract-info
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             WINE_REPO="${{ github.event.inputs.wine_repo }}"
@@ -109,6 +127,14 @@ jobs:
           echo "WINE_ARCH=$WINE_ARCH" >> $GITHUB_ENV
           echo "WINE_INTERPRETER_PATH=$WINE_INTERPRETER_PATH" >> $GITHUB_ENV
           echo "RUN_ENVIRONMENT=$RUN_ENVIRONMENT" >> $GITHUB_ENV
+
+          WINE_ARTIFACT_NAME="wine-${RUN_ENVIRONMENT}-${WINE_BRANCH}-${WINE_ARCH}"
+          echo "WINE_ARTIFACT_NAME=${WINE_ARTIFACT_NAME}" >> $GITHUB_ENV
+
+          echo "wine_branch=$WINE_BRANCH" >> $GITHUB_OUTPUT
+          echo "wine_patches=$WINE_PATCHES" >> $GITHUB_OUTPUT
+          echo "wine_arch=$WINE_ARCH" >> $GITHUB_OUTPUT
+          echo "wine_artifact_name=$WINE_ARTIFACT_NAME" >> $GITHUB_OUTPUT
       - name: Checkout wine repo
         uses: actions/checkout@v4
         with:
@@ -146,5 +172,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: wine-${{ env.RUN_ENVIRONMENT }}-${{ env.WINE_BRANCH }}-${{ env.WINE_ARCH }}
+          name: ${{ env.WINE_ARTIFACT_NAME }}
           path: ./prefix-${{ env.RUN_ENVIRONMENT }}-${{ env.WINE_TAG }}-${{ env.WINE_ARCH }}
