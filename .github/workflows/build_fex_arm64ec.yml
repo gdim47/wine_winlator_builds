@@ -8,9 +8,19 @@ on:
         required: true
         type: string
       fex_tag:
-        description: "FEX tag that used for build"
+        description: FEX tag that used for build
         default: "main"
         type: string
+    outputs:
+      fex_repo:
+        description: FEX git repo that used for build
+        value: ${{ jobs.fex-arm64ec.outputs.fex_repo }}
+      fex_tag:
+        description: FEX tag that used for build
+        value: ${{ jobs.fex-arm64ec.outputs.fex_tag }}
+      fex_artifact_name:
+        description: Artifact name
+        value: ${{ jobs.fex-arm64ec.outputs.fex_artifact_name }}
 
   workflow_dispatch:
     inputs:
@@ -26,11 +36,15 @@ on:
 jobs:
   fex-arm64ec:
     runs-on: ubuntu-24.04
-
+    outputs:
+      fex_repo: ${{ steps.extract-info.outputs.fex_repo }}
+      fex_tag: ${{ steps.extract-info.outputs.fex_tag }}
+      fex_artifact_name: ${{ steps.gen-artifact-name.outputs.fex_artifact_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Extract info from tag
+        id: extract-info
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             FEX_REPO="${{ github.event.inputs.fex_repo }}"
@@ -42,6 +56,9 @@ jobs:
           
           echo "FEX_REPO=$FEX_REPO" >> $GITHUB_ENV
           echo "FEX_TAG=$FEX_TAG" >> $GITHUB_ENV
+          
+          echo "fex_repo=$FEX_REPO" >> $GITHUB_OUTPUT
+          echo "fex_tag=$FEX_TAG" >> $GITHUB_OUTPUT
       - name: Checkout FEX repo
         id: fex_checkout
         uses: actions/checkout@v4
@@ -57,6 +74,12 @@ jobs:
           workflow_conclusion: success
           path: ${{ runner.temp }}
           name: Builder rootfs images
+      - name: Generate artifact name
+        id: gen-artifact-name
+        run: |
+          FEX_ARTIFACT_NAME="FEX-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}"
+          echo "FEX_ARTIFACT_NAME=$FEX_ARTIFACT_NAME" >> $GITHUB_ENV
+          echo "fex_artifact_name=$FEX_ARTIFACT_NAME" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Load builder image
@@ -74,5 +97,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: FEX-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}
+          name: ${{ env.FEX_ARTIFACT_NAME }}
           path: ./prefix-fex-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}
