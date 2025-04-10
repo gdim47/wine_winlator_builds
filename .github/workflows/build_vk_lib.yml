@@ -1,4 +1,4 @@
-name: Build vulkan-based library for arm64ec
+name: Build vulkan-based library for x86/arm64ec
 
 on:
   workflow_call:
@@ -15,6 +15,26 @@ on:
         description: dxvk/vkd3d-proton tag that used for build
         default: main
         type: string
+      vk_lib_arch:
+        description: dxvk/vkd3d-proton library architecture
+        required: true
+        type: string
+    outputs:
+      vk_lib_name:
+        description: Name of vulkan-based library
+        value: ${{ jobs.build.outputs.vk_lib_name }}
+      vk_lib_tag:
+        description: dxvk/vkd3d-proton tag that used for build
+        value: ${{ jobs.build.outputs.vk_lib_tag }}
+      vk_lib_repo:
+        description: dxvk/vkd3d-proton git repo that used for build
+        value: ${{ jobs.build.outputs.vk_lib_repo }}
+      vk_lib_arch:
+        description: dxvk/vkd3d-proton library architecture
+        value: ${{ jobs.build.outputs.vk_lib_arch }}
+      vk_lib_artifact_name:
+        description: Artifact name
+        value: ${{ jobs.build.outputs.vk_lib_artifact_name }}
 
   workflow_dispatch:
     inputs:
@@ -30,29 +50,47 @@ on:
         description: dxvk/vkd3d-proton tag that used for build
         default: main
         type: string
+      vk_lib_arch:
+        description: dxvk/vkd3d-proton library architecture
+        required: true
+        type: string
 
 jobs:
-  vk_lib-arm64ec:
+  build:
     runs-on: ubuntu-24.04
-
+    outputs:
+      vk_lib_name: ${{ steps.extract-info.outputs.vk_lib_name }}
+      vk_lib_tag: ${{ steps.extract-info.outputs.vk_lib_tag }}
+      vk_lib_repo: ${{ steps.extract-info.outputs.vk_lib_repo }}
+      vk_lib_arch: ${{ steps.extract-info.outputs.vk_lib_arch }}
+      vk_lib_artifact_name: ${{ steps.gen-artifact-name.outputs.vk_lib_artifact_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Extract inputs into environment variables 
+      - name: Extract inputs into environment variables
+        id: extract-info
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VK_LIB_NAME="${{ github.event.inputs.vk_lib_name }}"
             VK_LIB_REPO="${{ github.event.inputs.vk_lib_repo }}"
             VK_LIB_TAG="${{ github.event.inputs.vk_lib_tag }}"
+            VK_LIB_ARCH="${{ github.event.inputs.vk_lib_arch }}"
           else
-            VK_LIB_NAME="${{ github.event.inputs.vk_lib_name }}"
+            VK_LIB_NAME="${{ inputs.vk_lib_name }}"
             VK_LIB_REPO="${{ inputs.vk_lib_repo }}"
             VK_LIB_TAG="${{ inputs.vk_lib_tag }}"
+            VK_LIB_ARCH="${{ inputs.vk_lib_arch }}"
           fi
          
           echo "VK_LIB_NAME=$VK_LIB_NAME" >> $GITHUB_ENV
           echo "VK_LIB_REPO=$VK_LIB_REPO" >> $GITHUB_ENV
           echo "VK_LIB_TAG=$VK_LIB_TAG" >> $GITHUB_ENV
+          echo "VK_LIB_ARCH=$VK_LIB_ARCH" >> $GITHUB_ENV
+
+          echo "vk_lib_name=$VK_LIB_NAME" >> $GITHUB_OUTPUT
+          echo "vk_lib_arch=$VK_LIB_ARCH" >> $GITHUB_OUTPUT
+          echo "vk_lib_repo=${VK_LIB_REPO}" >> $GITHUB_OUTPUT
+          echo "vk_lib_tag=${VK_LIB_TAG}" >> $GITHUB_OUTPUT
       - name: Checkout library repository
         id: vk_lib_checkout 
         uses: actions/checkout@v4
@@ -60,7 +98,13 @@ jobs:
           repository: ${{ env.VK_LIB_REPO }}
           ref: ${{ env.VK_LIB_TAG }}
           submodules: 'recursive'
-          path: ${{ env.VK_LIB_NAME }} 
+          path: ${{ env.VK_LIB_NAME }}
+      - name: Generate artifact name
+        id: gen-artifact-name
+        run: |
+          VK_LIB_ARTIFACT_NAME="${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_ARCH }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}"
+          echo "VK_LIB_ARTIFACT_NAME=${VK_LIB_ARTIFACT_NAME}" >> $GITHUB_ENV
+          echo "vk_lib_artifact_name=${VK_LIB_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
       - name: Download builder rootfs artifact
         uses: dawidd6/action-download-artifact@v9
         with: 
@@ -80,11 +124,12 @@ jobs:
           -e VK_LIB_NAME=${{ env.VK_LIB_NAME }}
           -e VK_LIB_REPO=${{ env.VK_LIB_REPO }} -e VK_LIB_TAG=${{ env.VK_LIB_TAG }}
           -e VK_LIB_REF=${{ steps.vk_lib_checkout.outputs.commit }}
+          -e VK_LIB_ARCH=${{ env.VK_LIB_ARCH }}
           --entrypoint=/create_vk_lib_archive.sh
           wine_builder_rootfs
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: ${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}
-          path: ./prefix-${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}
+          name: ${{ env.VK_LIB_ARTIFACT_NAME }}
+          path: ./prefix-${{ env.VK_LIB_NAME }}-${{ env.VK_LIB_ARCH }}-${{ env.VK_LIB_TAG }}-${{ steps.vk_lib_checkout.outputs.commit }}
