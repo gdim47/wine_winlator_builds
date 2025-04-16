@@ -1,5 +1,6 @@
 *
 !create_wine_archive.sh
+!create_wine_prefix.sh
 !create_fex_archive.sh
 !create_vk_lib_archive.sh
 !toolchains/*
