@@ -87,6 +87,7 @@ jobs:
           path: repo
           sparse-checkout: |
             profile.json
+            create_wine_prefix.sh
           sparse-checkout-cone-mode: false
       - name: Download wine artifact
         uses: dawidd6/action-download-artifact@v9
@@ -128,9 +129,14 @@ jobs:
         run: |
           mv wine-* result
           find `pwd`/artifact-libs/ -mindepth 2 -maxdepth 2 -type d -exec cp -r --update=all {} `pwd`/result \;
+      - name: Set up QEMU for aarch64 architecture
+        uses: docker/setup-qemu-action@v3
+        if: ${{ runner.arch != 'ARM64' }}
+        with:
+          platforms: "arm64"
       - name: Generate prefix pack
-        run: | # todo: replace placeholder with actual code
-          touch result/prefixPack.txz
+        run: |
+          WINE_PREFIX_PATH="`pwd`/result" WINE_RESULT_PATH="`pwd`/result/prefixPack.txz" repo/create_wine_prefix.sh
       - name: Generate wcp
         run: |
           cp repo/profile.json result/profile.json
