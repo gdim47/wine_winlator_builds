@@ -88,14 +88,6 @@ case "${WINE_ARCH}" in
         ;;
 esac
 
-echo "Preparing wine git repo"
-cd "$WINE_SRC_DIR"
-./tools/make_requests
-./tools/make_specfiles
-./dlls/winevulkan/make_vulkan
-# ./tools/make_makefiles
-autoreconf -f
-
 echo "Build environment vars"
 env
 
