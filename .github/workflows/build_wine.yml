@@ -74,6 +74,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [ matrix, build-wine, build-dxvk, build-vkd3d-proton, build-fex-arm64ec ]
     strategy:
+      fail-fast: false
       matrix:
         arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
         config: ${{ fromJson(needs.matrix.outputs.matrix_config) }}
