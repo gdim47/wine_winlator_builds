@@ -96,6 +96,7 @@ jobs:
           name_is_regexp: true
           workflow_conclusion: ""
           run_id: ${{ github.run_id }}
+          use_unzip: true
       - name: Download dxvk artifact
         uses: dawidd6/action-download-artifact@v9
         with:
