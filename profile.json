@@ -1,0 +1,12 @@
+{
+  "type": "Wine",
+  "versionName": "9.0-proton_arm64ec",
+  "versionCode": 1,
+  "description": "Wine 9.0 Proton. Based on [https://github.com/bylaws/wine], arm64ec branch",
+  "files": [],
+  "wine": {
+	  "binPath": "bin",
+	  "libPath": "lib",
+	  "prefixPack": "prefixPack.txz"
+  }
+}
