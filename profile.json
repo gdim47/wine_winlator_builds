@@ -1,0 +1,12 @@
+{
+  "type": "Wine",
+  "versionName": "10.9-stable",
+  "versionCode": 1,
+  "description": "Wine 10.9 stable. Based on [https://gitlab.winehq.org/wine/wine], tag wine-10.9",
+  "files": [],
+  "wine": {
+	  "binPath": "bin",
+	  "libPath": "lib",
+	  "prefixPack": "prefixPack.txz"
+  }
+}
