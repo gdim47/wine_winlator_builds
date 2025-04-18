@@ -1,0 +1,12 @@
+{
+  "type": "Wine",
+  "versionName": "10.6-upstream-arm64ec",
+  "versionCode": 1,
+  "description": "Wine 10.6. Based on [https://github.com/bylaws/wine], upstream-arm64ec branch",
+  "files": [],
+  "wine": {
+	  "binPath": "bin",
+	  "libPath": "lib",
+	  "prefixPack": "prefixPack.txz"
+  }
+}
