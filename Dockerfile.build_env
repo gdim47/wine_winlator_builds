@@ -70,7 +70,7 @@ RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recomm
 RUN for arch in arm64 amd64; do \
     env DEBIAN_FRONTEND="noninteractive" apt-get -o APT::Get::allow-downgrades=true \
     -o Dpkg::Options::="--force-overwrite" install \
-    -yq --no-install-recommends linux-libc-dev:$arch=6.8.0-57.59 linux-libc-dev:$arch=6.8.0-57.59; done
+    -yq --no-install-recommends linux-libc-dev:$arch=6.8.0-58.60 linux-libc-dev:$arch=6.8.0-58.60; done
 
 # deps for x86_64 and arm64ec wine build
 RUN for arch in arm64 amd64; do \
