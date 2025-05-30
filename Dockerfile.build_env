@@ -47,8 +47,7 @@ Package: python3.12:arm64\n\
 Pin: release *\n\
 Pin-Priority: -1\n" \
     > /etc/apt/preferences.d/pin-python3 && \
-    env DEBIAN_FRONTEND="noninteractive" apt-get update -yq && \
-    apt-get upgrade -yq
+    env DEBIAN_FRONTEND="noninteractive" apt-get update -yq
 
 # install build tools and compilers
 RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recommends \
@@ -65,12 +64,6 @@ RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recomm
     rm /llvm-mingw.tar.xz && \
     pip3 install --break-system-packages --user meson==1.7.0
 
-# because of version mismatch in ubuntu-ports and main ubuntu repos for "linux-libc-dev" package,
-# we just force install same specific version of package. Update after changes in ubuntu repos
-RUN for arch in arm64 amd64; do \
-    env DEBIAN_FRONTEND="noninteractive" apt-get -o APT::Get::allow-downgrades=true \
-    -o Dpkg::Options::="--force-overwrite" install \
-    -yq --no-install-recommends linux-libc-dev:$arch=6.8.0-57.59 linux-libc-dev:$arch=6.8.0-57.59; done
 
 # deps for x86_64 and arm64ec wine build
 RUN for arch in arm64 amd64; do \
@@ -93,7 +86,6 @@ RUN for arch in arm64 amd64; do \
     libxrandr-dev:$arch libdrm-dev:$arch libgl-dev:$arch \
     libegl-dev:$arch libvulkan-dev:$arch \ 
     libgstreamer1.0-dev:$arch libgstreamer-plugins-base1.0-dev:$arch; done 
-
 # because libgstreamer-plugins-base1.0-dev have arch-independent files,
 # unpack package in per-arch directories
 RUN for arch in arm64 amd64; do \
