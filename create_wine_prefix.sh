@@ -27,7 +27,7 @@ ln -s -f "${WINLATOR_PREFIX}/usr/bin" "${WINLATOR_PREFIX}/bin"
 ln -s -f "${WINLATOR_PREFIX}/usr/lib" "${WINLATOR_PREFIX}/lib"
 
 mkdir -p "${WINLATOR_PREFIX}/usr/share"
-ln -s "${WINE_PREFIX_PATH}/share/wine" "${WINLATOR_PREFIX}/usr/share/wine"
+ln -s -f "${WINE_PREFIX_PATH}/share/wine" "${WINLATOR_PREFIX}/usr/share/wine"
 
 echo "Init wine prefix with wineboot"
 WINE_PREFIX_DIR_NAME=".wine"

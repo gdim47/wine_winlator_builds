@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 export WINE_TAG="${WINE_TAG:-wine}"
 export WINE_BRANCH="${WINE_BRANCH:-stable}"
 export WINE_PATCHES="${WINE_PATCHES}"
@@ -77,8 +79,8 @@ case "${WINE_ARCH}" in
             --host aarch64-linux-gnu --enable-archs=i386,x86_64,aarch64 \
             --with-mingw=arm64ec-w64-mingw32-clang \
         "
-        export CFLAGS="${CFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
-        export CXXFLAGS="${CXXFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include"
+        export CFLAGS="${CFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include -ffixed-x18"
+        export CXXFLAGS="${CXXFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include -ffixed-x18"
         export LDFLAGS="${LDFLAGS} -target aarch64-linux-gnu -fuse-ld=lld"
         export PKG_CONFIG_LIBDIR="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
         ;;
@@ -94,7 +96,10 @@ env
 echo "Configuring wine build"
 mkdir -p "${WINE_BUILD_DIR}/build-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 cd "${WINE_BUILD_DIR}/build-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
+# after wine 10.2 we need to forcefully enable native tools('--enable-tools') to get 'wine' in bindir 
 ${WINE_SRC_DIR}/configure ${CONFIG_TARGET_OPTIONS} ${CONFIG_OPTIONS} --prefix ${WINE_PREFIX_DIR} \
+    --libdir ${WINE_PREFIX_DIR}/lib --bindir ${WINE_PREFIX_DIR}/bin \
+    --enable-tools \
     --with-wine-tools="${WINE_BUILD_DIR}/build-tools-${RUN_ENVIRONMENT}-${WINE_TAG}-${WINE_ARCH}"
 echo "Building wine"
 make -j$(nproc) 
@@ -105,8 +110,9 @@ if [ -n "${WINE_INTERPRETER_PATH}" ]; then
     
     WINE_BIN_DIR="${WINE_PREFIX_DIR}/bin"
     for f in "${WINE_BIN_DIR}"/*; do
-        if [ -f "$f" ] && [ ! -L "$f" ]; then
-            patchelf --set-interpreter ${WINE_INTERPRETER_PATH} "$f"
+        if [ -f "$f" ]; then
+            echo "Set interpreter for: $f"
+            patchelf --set-interpreter ${WINE_INTERPRETER_PATH} "$f" || true
         fi
     done
 fi
