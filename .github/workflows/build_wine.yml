@@ -34,7 +34,7 @@ jobs:
     uses: ./.github/workflows/build_wine_arch.yml
     with:
       wine_arch: ${{ matrix.arch }}
-      wine_interpreter: ${{ matrix.config.interpreter_path }}
+      wine_interpreter: ${{ matrix.arch == 'x86' && matrix.config.interpreter_path.x86 || matrix.arch == 'arm64ec' && matrix.config.interpreter_path.arm64ec }}
       run_environment: ${{ matrix.config.environment }}
   
   build-dxvk:
@@ -79,7 +79,7 @@ jobs:
         arch: ${{ fromJson(needs.matrix.outputs.matrix_arch) }}
         config: ${{ fromJson(needs.matrix.outputs.matrix_config) }}
         exclude:
-          - config: { "environment": "generic", "intepreter_path": "" }
+          - config: { "environment": "generic" }
     name: Create wcp image ${{ matrix.arch }}
     steps:
       - name: Checkout wine repository
