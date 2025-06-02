@@ -71,7 +71,7 @@ case "${WINE_ARCH}" in
         " 
         export CFLAGS="${CFLAGS} -target x86_64-linux-gnu -I/usr/local/gstreamer-1.0-amd64/include"
         export CXXFLAGS="${CXXFLAGS} -target x86_64-linux-gnu -I/usr/local/gstreamer-1.0-amd64/include"
-        export LDFLAGS="${LDFLAGS} -target x86_64-linux-gnu -fuse-ld=lld"
+        export LDFLAGS="${LDFLAGS} -target x86_64-linux-gnu -fuse-ld=lld -lm"
         export PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
         ;;
     "arm64ec")
