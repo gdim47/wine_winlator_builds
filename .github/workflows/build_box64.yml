@@ -1,0 +1,101 @@
+name: Build FEX arm64ec/wow64 
+
+on:
+  workflow_call:
+    inputs:
+      fex_repo:
+        description: FEX git repo that used for build
+        required: true
+        type: string
+      fex_tag:
+        description: FEX tag that used for build
+        default: "main"
+        type: string
+    outputs:
+      fex_repo:
+        description: FEX git repo that used for build
+        value: ${{ jobs.fex-arm64ec.outputs.fex_repo }}
+      fex_tag:
+        description: FEX tag that used for build
+        value: ${{ jobs.fex-arm64ec.outputs.fex_tag }}
+      fex_artifact_name:
+        description: Artifact name
+        value: ${{ jobs.fex-arm64ec.outputs.fex_artifact_name }}
+
+  workflow_dispatch:
+    inputs:
+      fex_repo:
+        description: FEX git repo that used for build
+        required: true
+        type: string
+      fex_tag:
+        description: "FEX tag that used for build"
+        default: "main"
+        type: string
+
+jobs:
+  fex-arm64ec:
+    runs-on: ubuntu-24.04
+    outputs:
+      fex_repo: ${{ steps.extract-info.outputs.fex_repo }}
+      fex_tag: ${{ steps.extract-info.outputs.fex_tag }}
+      fex_artifact_name: ${{ steps.gen-artifact-name.outputs.fex_artifact_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract info from tag
+        id: extract-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FEX_REPO="${{ github.event.inputs.fex_repo }}"
+            FEX_TAG="${{ github.event.inputs.fex_tag }}"
+          else
+            FEX_REPO="${{ inputs.fex_repo }}"
+            FEX_TAG="${{ inputs.fex_tag }}"
+          fi
+          
+          echo "FEX_REPO=$FEX_REPO" >> $GITHUB_ENV
+          echo "FEX_TAG=$FEX_TAG" >> $GITHUB_ENV
+          
+          echo "fex_repo=$FEX_REPO" >> $GITHUB_OUTPUT
+          echo "fex_tag=$FEX_TAG" >> $GITHUB_OUTPUT
+      - name: Checkout FEX repo
+        id: fex_checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.FEX_REPO }}
+          ref: ${{ env.FEX_TAG }}
+          submodules: 'recursive'
+          path: FEX 
+      - name: Download builder rootfs artifact
+        uses: dawidd6/action-download-artifact@v9
+        with: 
+          workflow: build_env.yml
+          workflow_conclusion: success
+          path: ${{ runner.temp }}
+          name: Builder rootfs images
+      - name: Generate artifact name
+        id: gen-artifact-name
+        run: |
+          FEX_ARTIFACT_NAME="FEX-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}"
+          echo "FEX_ARTIFACT_NAME=$FEX_ARTIFACT_NAME" >> $GITHUB_ENV
+          echo "fex_artifact_name=$FEX_ARTIFACT_NAME" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Load builder image
+        run: |
+          docker load --input ${{ runner.temp }}/wine_builder_rootfs.tar.xz
+      - name: Run build container
+        run: >
+          docker run --name builder 
+          -v ${{ github.workspace }}:/workdir
+          -e FEX_REPO=${{ env.FEX_REPO }} -e FEX_TAG=${{ env.FEX_TAG }}
+          -e FEX_REF=${{ steps.fex_checkout.outputs.commit }}
+          --entrypoint=/create_fex_archive.sh
+          wine_builder_rootfs
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ env.FEX_ARTIFACT_NAME }}
+          path: ./prefix-fex-${{ env.FEX_TAG }}-${{ steps.fex_checkout.outputs.commit }}
