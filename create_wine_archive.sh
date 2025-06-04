@@ -76,13 +76,15 @@ case "${WINE_ARCH}" in
         ;;
     "arm64ec")
         export CONFIG_TARGET_OPTIONS="
-            --host aarch64-linux-gnu --enable-archs=i386,x86_64,aarch64 \
-            --with-mingw=arm64ec-w64-mingw32-clang \
+            --host aarch64-linux-gnu --enable-archs=arm64ec,aarch64,i386 \
+            --with-mingw=clang \
         "
         export CFLAGS="${CFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include -ffixed-x18"
         export CXXFLAGS="${CXXFLAGS} -target aarch64-linux-gnu -I/usr/local/gstreamer-1.0-arm64/include -ffixed-x18"
         export LDFLAGS="${LDFLAGS} -target aarch64-linux-gnu -fuse-ld=lld"
         export PKG_CONFIG_LIBDIR="/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
+        # append mstorsjo llvm-mingw to PATH when building for arm64ec
+        export PATH="/llvm-mingw/bin:$PATH"
         ;;
     *)
         echo "Unsupported wine build architecture: ${WINE_ARCH}"

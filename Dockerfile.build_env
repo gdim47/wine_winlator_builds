@@ -1,14 +1,20 @@
 ARG UBUNTU_VERSION="noble"
-ARG LLVM_MINGW_LINK="https://github.com/bylaws/llvm-mingw"
-ARG LLVM_MINGW_VERSION="20250305"
+ARG LLVM_MINGW_LINK="https://github.com/mstorsjo/llvm-mingw"
+ARG LLVM_MINGW_VERSION="20250528"
 ARG LLVM_MINGW_ARCH="x86_64"
 
+ARG LLVM_MINGW_ARM64EC_LINK="https://github.com/bylaws/llvm-mingw"
+ARG LLVM_MINGW_ARM64EC_VERSION="20250305"
+ARG LLVM_MINGW_ARM64EC_ARCH="x86_64"
 FROM ubuntu:${UBUNTU_VERSION}
 
 ARG UBUNTU_VERSION
 ARG LLVM_MINGW_LINK
 ARG LLVM_MINGW_VERSION
 ARG LLVM_MINGW_ARCH
+ARG LLVM_MINGW_ARM64EC_LINK
+ARG LLVM_MINGW_ARM64EC_VERSION
+ARG LLVM_MINGW_ARM64EC_ARCH
 
 # add ubuntu-ports repo for arm64 packages 
 RUN env DEBIAN_FRONTEND="noninteractive" apt-get update -yq && \
@@ -58,10 +64,15 @@ RUN env DEBIAN_FRONTEND="noninteractive" apt-get install -yq --no-install-recomm
     libgcc-13-dev patchelf glslang-tools && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
     wget -O /llvm-mingw.tar.xz \
-    ${LLVM_MINGW_LINK}/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH}.tar.xz && \
+    ${LLVM_MINGW_LINK}/releases/download/${LLVM_MINGW_VERSION}/llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-${LLVM_MINGW_ARCH}.tar.xz && \
     tar xf /llvm-mingw.tar.xz --directory=/ && \
-    mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
+    mv /llvm-mingw-${LLVM_MINGW_VERSION}-ucrt-ubuntu-22.04-${LLVM_MINGW_ARCH} /llvm-mingw && \
     rm /llvm-mingw.tar.xz && \
+    wget -O /llvm-mingw-arm64ec.tar.xz \
+    ${LLVM_MINGW_ARM64EC_LINK}/releases/download/${LLVM_MINGW_ARM64EC_VERSION}/llvm-mingw-${LLVM_MINGW_ARM64EC_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARM64EC_ARCH}.tar.xz && \
+    tar xf /llvm-mingw-arm64ec.tar.xz --directory=/ && \
+    mv /llvm-mingw-${LLVM_MINGW_ARM64EC_VERSION}-ucrt-ubuntu-20.04-${LLVM_MINGW_ARM64EC_ARCH} /llvm-mingw-arm64ec && \
+    rm /llvm-mingw-arm64ec.tar.xz && \
     pip3 install --break-system-packages --user meson==1.7.0
 
 
@@ -104,7 +115,7 @@ COPY create_vk_lib_archive.sh /
 COPY create_wine_prefix.sh /
 COPY toolchains /toolchains
 
-ENV PATH="/llvm-mingw/bin:$PATH"
+ENV PATH="/llvm-mingw-arm64ec/bin:$PATH"
 ENV LANG=en_US.UTF-8
 ENV CC="clang"
 ENV CXX="clang++"
